@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      String
+  createdAt DateTime @default(now())
+
+  restaurants Restaurant[]
+  orders      Order[]
+}
+
+model Restaurant {
+  id        Int      @id @default(autoincrement())
+  ownerId   Int
+  name      String
+  address   String
+  phone     String?
+  isOpen    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  owner     User       @relation(fields: [ownerId], references: [id])
+  menuItems MenuItem[]
+  orders    Order[]
+}
+
+model MenuItem {
+  id           Int      @id @default(autoincrement())
+  restaurantId Int
+  name         String
+  description  String?
+  price        Float
+  available    Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id])
+  orderItems OrderItem[]
+}
+
+model Order {
+  id              Int      @id @default(autoincrement())
+  customerId      Int
+  restaurantId    Int
+  status          String   @default("pending")
+  customerName    String
+  customerPhone   String
+  customerAddress String
+  subtotal        Float
+  deliveryFee     Float
+  serviceFee      Float
+  total           Float
+  assignedRider   String?
+  createdAt       DateTime @default(now())
+
+  customer   User        @relation(fields: [customerId], references: [id])
+  restaurant Restaurant  @relation(fields: [restaurantId], references: [id])
+  orderItems OrderItem[]
+}
+
+model OrderItem {
+  id         Int   @id @default(autoincrement())
+  orderId    Int
+  menuItemId Int
+  quantity   Int
+  price      Float
+
+  order    Order    @relation(fields: [orderId], references: [id])
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id])
+}
