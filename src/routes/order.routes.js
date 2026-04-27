@@ -78,11 +78,12 @@ router.get("/", authMiddleware, async (req, res) => {
 
     res.json(orders);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Failed to fetch orders" });
   }
 });
 
-// GET SINGLE ORDER (TRACKING)
+// GET SINGLE ORDER
 router.get("/:id", authMiddleware, async (req, res) => {
   try {
     const orderId = Number(req.params.id);
@@ -110,7 +111,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// UPDATE ORDER STATUS
+// UPDATE ORDER STATUS (PATCH)
 router.patch("/:id/status", authMiddleware, async (req, res) => {
   try {
     const orderId = Number(req.params.id);
@@ -120,14 +121,49 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
       "pending",
       "accepted",
       "preparing",
+      "ready",
       "delivering",
-      "delivered"
+      "delivered",
+      "cancelled"
     ];
 
     if (!allowedStatuses.includes(status)) {
-      return res.status(400).json({
-        error: "Invalid status value"
-      });
+      return res.status(400).json({ error: "Invalid status value" });
+    }
+
+    const order = await prisma.order.update({
+      where: { id: orderId },
+      data: { status }
+    });
+
+    res.json({
+      message: "Order status updated successfully",
+      order
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Order status update failed" });
+  }
+});
+
+// UPDATE ORDER STATUS (PUT)
+router.put("/:id/status", authMiddleware, async (req, res) => {
+  try {
+    const orderId = Number(req.params.id);
+    const { status } = req.body;
+
+    const allowedStatuses = [
+      "pending",
+      "accepted",
+      "preparing",
+      "ready",
+      "delivering",
+      "delivered",
+      "cancelled"
+    ];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid status value" });
     }
 
     const order = await prisma.order.update({
@@ -152,9 +188,7 @@ router.patch("/:id/assign-rider", authMiddleware, async (req, res) => {
     const { assignedRider } = req.body;
 
     if (!assignedRider) {
-      return res.status(400).json({
-        error: "assignedRider is required"
-      });
+      return res.status(400).json({ error: "assignedRider is required" });
     }
 
     const order = await prisma.order.update({
