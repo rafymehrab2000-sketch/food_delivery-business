@@ -82,4 +82,94 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
+// GET SINGLE ORDER (TRACKING)
+router.get("/:id", authMiddleware, async (req, res) => {
+  try {
+    const orderId = Number(req.params.id);
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        restaurant: true,
+        orderItems: {
+          include: {
+            menuItem: true
+          }
+        }
+      }
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    res.json(order);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch order" });
+  }
+});
+
+// UPDATE ORDER STATUS
+router.patch("/:id/status", authMiddleware, async (req, res) => {
+  try {
+    const orderId = Number(req.params.id);
+    const { status } = req.body;
+
+    const allowedStatuses = [
+      "pending",
+      "accepted",
+      "preparing",
+      "delivering",
+      "delivered"
+    ];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        error: "Invalid status value"
+      });
+    }
+
+    const order = await prisma.order.update({
+      where: { id: orderId },
+      data: { status }
+    });
+
+    res.json({
+      message: "Order status updated successfully",
+      order
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Order status update failed" });
+  }
+});
+
+// ASSIGN RIDER
+router.patch("/:id/assign-rider", authMiddleware, async (req, res) => {
+  try {
+    const orderId = Number(req.params.id);
+    const { assignedRider } = req.body;
+
+    if (!assignedRider) {
+      return res.status(400).json({
+        error: "assignedRider is required"
+      });
+    }
+
+    const order = await prisma.order.update({
+      where: { id: orderId },
+      data: { assignedRider }
+    });
+
+    res.json({
+      message: "Rider assigned successfully",
+      order
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Rider assignment failed" });
+  }
+});
+
 module.exports = router;

@@ -9,6 +9,13 @@ router.post("/", authMiddleware, async (req, res) => {
   try {
     const { restaurantId, name, description, price } = req.body;
 
+    // Basic validation
+    if (!restaurantId || !name || !price) {
+      return res.status(400).json({
+        error: "restaurantId, name and price are required"
+      });
+    }
+
     const menuItem = await prisma.menuItem.create({
       data: {
         restaurantId,
@@ -22,6 +29,7 @@ router.post("/", authMiddleware, async (req, res) => {
       message: "Menu item created successfully",
       menuItem
     });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Menu item creation failed" });
@@ -34,11 +42,16 @@ router.get("/:restaurantId", async (req, res) => {
     const restaurantId = Number(req.params.restaurantId);
 
     const menuItems = await prisma.menuItem.findMany({
-      where: { restaurantId }
+      where: { restaurantId },
+      orderBy: {
+        createdAt: "desc"
+      }
     });
 
     res.json(menuItems);
+
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Failed to fetch menu" });
   }
 });
